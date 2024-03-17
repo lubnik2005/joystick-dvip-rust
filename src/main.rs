@@ -69,7 +69,7 @@ fn main() -> std::io::Result<()> {
                     println!("Gamepad {} is disconnected", event.id);
                 }
                 EventType::AxisChanged(axis, value, id) => match axis {
-                    Axis::RightStickX => {
+                    Axis::LeftStickX => {
                         camera.pt_command.replace_range(
                             18..20,
                             if value.abs() * 24.0 < 0.5 {
@@ -87,7 +87,7 @@ fn main() -> std::io::Result<()> {
                         camera.pt_command.replace_range(12..14, &hex_speed);
                         let _ = camera.send();
                     }
-                    Axis::RightStickY => {
+                    Axis::LeftStickY => {
                         camera.pt_command.replace_range(
                             21..23,
                             if value.abs() * 24.0 < 0.5 {
@@ -106,10 +106,10 @@ fn main() -> std::io::Result<()> {
                         let _ = camera.send();
                     }
 
-                    _ => println!("Unkown Axis"),
+                    _ => println!("Unkown Axis: {:?}", axis),
                 },
                 EventType::ButtonChanged(button, value, id) => match button {
-                    Button::LeftTrigger2 => {
+                    Button::RightTrigger2 => {
 
                         camera.z_command.replace_range(
                             12..13,
