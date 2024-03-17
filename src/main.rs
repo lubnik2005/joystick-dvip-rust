@@ -21,8 +21,8 @@ impl Camera {
         };
 
         Ok(Camera {
-            z_command: "81 01 04 07 30 FF".to_string(),
-            pt_command: "81 01 06 01 00 00 00 00 FF ".to_string(),
+            z_command: "81 01 04 07 00 FF".to_string(),
+            pt_command: "81 01 06 01 00 00 00 00 FF".to_string(),
             socket,
         })
     }
@@ -32,7 +32,19 @@ impl Camera {
         println!("{}", command);
         let byte_array: Vec<u8> = match hex::decode(command) {
             Ok(b) => b,
-            Err(e) => Vec::new(),
+            Err(_e) => Vec::new(),
+        };
+        let _ = self.socket.write_all(&byte_array);
+        let _ = self.socket.flush();
+        Ok(())
+    }
+
+    fn z_send(&mut self) -> std::io::Result<()> {
+        let command = ("00 08 ".to_string() + &self.z_command).replace(" ", "");
+        println!("{}", command);
+        let byte_array: Vec<u8> = match hex::decode(command) {
+            Ok(b) => b,
+            Err(_e) => Vec::new(),
         };
         let _ = self.socket.write_all(&byte_array);
         let _ = self.socket.flush();
@@ -70,7 +82,7 @@ fn main() -> std::io::Result<()> {
                                 }
                             },
                         );
-                        let speed = (value * value * 24.0 + 0.5) as i8;
+                        let speed = (value.abs() * value * value * 24.0 + 0.5) as i8;
                         let hex_speed = format!("{:02X}", speed);
                         camera.pt_command.replace_range(12..14, &hex_speed);
                         let _ = camera.send();
@@ -88,7 +100,7 @@ fn main() -> std::io::Result<()> {
                                 }
                             },
                         );
-                        let speed = (value * value * 24.0 + 0.5) as i8;
+                        let speed = (value.abs() * value * value * 24.0 + 0.5) as i8;
                         let hex_speed = format!("{:02X}", speed);
                         camera.pt_command.replace_range(15..17, &hex_speed);
                         let _ = camera.send();
@@ -98,23 +110,24 @@ fn main() -> std::io::Result<()> {
                 },
                 EventType::ButtonChanged(button, value, id) => match button {
                     Button::LeftTrigger2 => {
-                        let cvalue = value - 0.5;
-                        camera.pt_command.replace_range(
-                            21..23,
-                            if cvalue.abs() * 24.0 < 0.5 {
-                                "03"
+
+                        camera.z_command.replace_range(
+                            12..13,
+                            if value < 0.43 {
+                                "3"
                             } else {
-                                if cvalue > 0.001 {
-                                    "01"
+                                if value > 0.45 {
+                                    "2"
                                 } else {
-                                    "02"
+                                    "0"
                                 }
                             },
                         );
-                        let speed = (cvalue * cvalue * 24.0 + 0.5) as i8;
-                        let hex_speed = format!("{:02X}", speed);
-                        camera.pt_command.replace_range(15..17, &hex_speed);
-                        let _ = camera.send();
+                        let speed = ((value - 0.446).abs() * 14.0 + 0.5) as i8;
+                        println!("{}, {}",value, speed);
+                        let hex_speed = format!("{:X}", speed);
+                        camera.z_command.replace_range(13..14, &hex_speed);
+                        let _ = camera.z_send();
                     }
                     _ => println!(
                         "Gamepad {} with unknown axis {:?} changed to {}",
